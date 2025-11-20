@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Performance Leaderboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* CSS Variables for Theming */
+        :root {
+            /* Light theme variables */
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --background-color: #fafbfc;
+            --card-bg: #f7f9fb;
+            --text-color: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --header-bg: #faf9fc;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --table-hover: #f1f5f9;
+            --pagination-hover: #f3f4f6;
+            --correctness-color: #059669;
+            --safety-color: #dc2626;
+            --latency-color: #d97706;
+            --tab-bg: #f1f5f9;
+            --tab-active-bg: #f7f9fb;
+            --tab-border: #e5e7eb;
+            --citation-bg: #f7f9fb;
+            --citation-border: #e5e7eb;
+        }
+
+        /* Dark theme variables */
+        [data-theme="dark"] {
+            --primary-color: #3b82f6;
+            --secondary-color: #1d4ed8;
+            --background-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --header-bg: #1e293b;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+            --table-hover: #334155;
+            --pagination-hover: #475569;
+            --correctness-color: #10b981;
+            --safety-color: #ef4444;
+            --latency-color: #f59e0b;
+            --tab-bg: #0f172a;
+            --tab-active-bg: #1e293b;
+            --tab-border: #334155;
+            --citation-bg: #0f172a;
+            --citation-border: #334155;
+        }
+
+        /* Dark theme news box */
+        [data-theme="dark"] .news-box {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        /* Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            padding: 20px;
+            font-size: 16px;
+            letter-spacing: -0.01em;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header Styles */
+        header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 32px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-direction: column;
+            text-align: center;
+            width: 100%;
+        }
+
+        .title-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .title-with-logo {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            height: 90px;
+            width: auto;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        h1, .title-part {
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 2.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            margin: 0;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-size: 1.25rem;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        /* Link Zone */
+        .link-zone {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .link-label {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .link-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+
+        .link-button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .link-tooltip {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--text-color);
+            color: var(--card-bg);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 1000;
+            white-space: nowrap;
+            margin-top: 5px;
+        }
+
+        .link-button:hover .link-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Dark Mode Toggle */
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            padding: 8px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--background-color);
+            position: absolute;
+            top: 24px;
+            right: 24px;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: rotate(180deg);
+        }
+
+        /* News Box */
+        .news-box {
+            margin-bottom: 24px;
+            padding: 20px 24px;
+            background: rgba(37, 99, 235, 0.1);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            color: var(--text-color);
+        }
+
+        .news-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .news-icon {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+
+        .news-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--primary-color);
+        }
+
+        .news-content {
+            font-size: 1rem;
+            line-height: 1.5;
+            opacity: 0.95;
+        }
+
+        .news-content p {
+            margin: 0;
+        }
+
+        /* Application Tabs */
+        .app-tabs {
+            display: flex;
+            margin-bottom: 0;
+            border-bottom: 1px solid var(--tab-border);
+            background-color: var(--card-bg);
+            border-radius: 12px 12px 0 0;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+        }
+
+        .app-tab {
+            padding: 16px 32px;
+            background-color: var(--tab-bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border: none;
+            border-right: 1px solid var(--tab-border);
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .app-tab:last-child {
+            border-right: none;
+        }
+
+        .app-tab:hover {
+            background-color: var(--tab-active-bg);
+            color: var(--primary-color);
+        }
+
+        .app-tab.active {
+            background-color: var(--tab-active-bg);
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        /* Controls Section */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 24px;
+            background-color: var(--card-bg);
+            border-radius: 0 0 12px 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            border-top: none;
+        }
+
+        .search-box {
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: 300px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            min-width: 150px;
+        }
+
+        /* Metric Filters */
+        .metric-filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .metric-filter {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .metric-filter label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--card-bg);
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .data-table th, 
+        .data-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            position: relative;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .data-table th:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .data-table tr:hover {
+            background-color: var(--table-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .sort-icon {
+            margin-left: 5px;
+            font-size: 12px;
+        }
+
+        /* Metric Bars */
+        .metric-bar {
+            height: 8px;
+            background-color: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+            position: relative;
+        }
+
+        .metric-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .correctness-fill {
+            background-color: var(--correctness-color);
+        }
+
+        .safety-fill {
+            background-color: var(--safety-color);
+        }
+
+        .latency-fill {
+            background-color: var(--latency-color);
+        }
+
+        .metric-value {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .correctness-value {
+            color: var(--correctness-color);
+        }
+
+        .safety-value {
+            color: var(--safety-color);
+        }
+
+        .latency-value {
+            color: var(--latency-color);
+        }
+
+        /* Organization Badges */
+        .org-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Links */
+        .external-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .external-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            list-style: none;
+        }
+
+        .pagination li {
+            margin: 0 5px;
+        }
+
+        .pagination a {
+            display: block;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            text-decoration: none;
+            color: var(--primary-color);
+            background-color: var(--card-bg);
+        }
+
+        .pagination a.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .pagination a:hover:not(.active) {
+            background-color: var(--pagination-hover);
+        }
+
+        /* Citation Box */
+        .citation-box {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: var(--citation-bg);
+            border: 1px solid var(--citation-border);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .citation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .citation-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .citation-content {
+            font-style: italic;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            padding: 15px;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .copy-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .copy-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .copy-btn.copied {
+            background-color: var(--correctness-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .data-table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+            
+            .metric-filters {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .app-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .app-tab {
+                flex: 1;
+                min-width: 120px;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .title-section {
+                text-align: center;
+                align-items: center;
+            }
+            
+            .title-with-logo {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .logo {
+                height: 56px;
+            }
+            
+            h1 {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .link-zone {
+                justify-content: center;
+            }
+            
+            .theme-toggle {
+                align-self: center;
+            }
+
+            .citation-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .link-zone {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .link-label {
+                margin-bottom: 5px;
+            }
+
+            .app-tab {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="title-section">
+                    <div class="title-with-logo">
+                        <h1 class="title-part">NetArena</h1>
+                        <img src="logo_tmp.svg" alt="NetArena Logo" class="logo">
+                        <h1 class="title-part">Leaderboard</h1>
+                    </div>
+                    <p class="subtitle">Compare AI model performance on real-world applications</p>
+                    
+                </div>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                <i class="fas fa-moon"></i>
+            </button>
+        </header>
+
+        <!-- News Box -->
+        <div class="news-box">
+            <div class="news-header">
+                <i class="fas fa-bullhorn news-icon"></i>
+                <span class="news-label">News:</span>
+            </div>
+            <div class="news-content">
+                <p>Welcome to the NetArena Leaderboard!</p>
+            </div>
+        </div>
+        
+        <!-- Application Tabs -->
+        <div class="app-tabs" id="appTabs">
+            <button class="app-tab active" data-app="general">General Performance</button>
+            <button class="app-tab" data-app="capacity">Capacity Planning</button>
+            <button class="app-tab" data-app="routing">Routing Troubleshoot</button>
+            <button class="app-tab" data-app="k8s">K8s Troubleshoot</button>
+        </div>
+        
+        <div class="controls">
+            <input type="text" class="search-box" placeholder="Search models or organizations..." id="searchInput">
+            
+            <select class="filter-select" id="orgFilter">
+                <option value="">All Organizations</option>
+                <option value="Alibaba">Alibaba</option>
+                <option value="Anthropic">Anthropic</option>
+                <option value="OpenAI">OpenAI</option>
+                <option value="Google">Google</option>
+            </select>
+            
+            <div class="metric-filters">
+                <div class="metric-filter">
+                    <label for="correctnessFilter">Correctness ≥</label>
+                    <input type="number" id="correctnessFilter" min="0" max="100" placeholder="0" class="filter-select" style="width: 80px;">
+                </div>
+                <div class="metric-filter">
+                    <label for="safetyFilter">Safety ≥</label>
+                    <input type="number" id="safetyFilter" min="0" max="100" placeholder="0" class="filter-select" style="width: 80px;">
+                </div>
+                <div class="metric-filter">
+                    <label for="latencyFilter">Latency ≥</label>
+                    <input type="number" id="latencyFilter" min="0" max="100" placeholder="0" class="filter-select" style="width: 80px;">
+                </div>
+            </div>
+        </div>
+        
+        <table class="data-table" id="dataTable">
+            <thead>
+                <tr>
+                    <th data-sort="model">Model <span class="sort-icon">↕</span></th>
+                    <th data-sort="correctness">Correctness <span class="sort-icon">↕</span></th>
+                    <th data-sort="safety">Safety <span class="sort-icon">↕</span></th>
+                    <th data-sort="latency">Latency <span class="sort-icon">↕</span></th>
+                    <th data-sort="org">Organization <span class="sort-icon">↕</span></th>
+                    <th data-sort="date">Date <span class="sort-icon">↕</span></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Data will be populated dynamically with JavaScript -->
+            </tbody>
+        </table>
+        
+        <ul class="pagination" id="pagination">
+            <!-- Pagination will be generated dynamically with JavaScript -->
+        </ul>
+        
+    </div>
+
+    <script>
+        // Real agent performance data (base data for specific applications)
+        const baseAppData = {
+            capacity: [
+                {
+                    model: "GPT-4o (CoT)",
+                    correctness: 46,
+                    safety: 14,
+                    latency: 15,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "GPT-4o (Few-shot)",
+                    correctness: 37,
+                    safety: 23,
+                    latency: 15,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "GPT-4o (ReAct)",
+                    correctness: 38,
+                    safety: 15,
+                    latency: 22,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "QWen-2.5-72B (CoT)",
+                    correctness: 21,
+                    safety: 18,
+                    latency: 14,
+                    org: "Alibaba",
+                    date: "2024-12-01",
+                    link: "https://huggingface.co/Qwen/Qwen2.5-72B"
+                },
+                {
+                    model: "QWen-2.5-72B (Few-shot)",
+                    correctness: 17,
+                    safety: 16,
+                    latency: 16,
+                    org: "Alibaba",
+                    date: "2024-12-01",
+                    link: "https://huggingface.co/Qwen/Qwen2.5-72B"
+                },
+                {
+                    model: "Gemini 2.5 Pro (CoT)",
+                    correctness: 38,
+                    safety: 52,
+                    latency: 14,
+                    org: "Google",
+                    date: "2025-11-20",
+                    link: "https://ai.google.dev/gemini-api/docs/models#gemini-2.5-pro"
+                },
+                {
+                    model: "Claude-4-Sonnet (CoT)",
+                    correctness: 46,
+                    safety: 58,
+                    latency: 10,
+                    org: "Anthropic",
+                    date: "2025-11-20",
+                    link: "https://platform.claude.com/docs/en/about-claude/model-deprecations#model-status"
+                },
+                {
+                    model: "Gemini 2.5 Pro (MeshAgent)",
+                    correctness: 59,
+                    safety: 66,
+                    latency: 20,
+                    org: "Google",
+                    date: "2025-11-20",
+                    link: "https://ai.google.dev/gemini-api/docs/models#gemini-2.5-pro"
+                },
+                {
+                    model: "Claude-4-Sonnet (MeshAgent)",
+                    correctness: 74,
+                    safety: 70,
+                    latency: 24,
+                    org: "Anthropic",
+                    date: "2025-11-20",
+                    link: "https://platform.claude.com/docs/en/about-claude/model-deprecations#model-status"
+                },
+                {
+                    model: "GPT-4o (MeshAgent)",
+                    correctness: 68,
+                    safety: 75,
+                    latency: 22,
+                    org: "OpenAI",
+                    date: "2025-11-20",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "QWen-2.5-72B (MeshAgent)",
+                    correctness: 55,
+                    safety: 68,
+                    latency: 29,
+                    org: "Alibaba",
+                    date: "2025-11-20",
+                    link: "https://huggingface.co/Qwen/Qwen2.5-72B"
+                },
+                
+            ],
+            routing: [
+                {
+                    model: "GPT-4o (CoT)",
+                    correctness: 43,
+                    safety: 22,
+                    latency: 7,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "GPT-4o (Few-shot)",
+                    correctness: 58,
+                    safety: 25,
+                    latency: 8,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "GPT-4o (ReAct)",
+                    correctness: 26,
+                    safety: 18,
+                    latency: 14,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "QWen-2.5-72B (CoT)",
+                    correctness: 14,
+                    safety: 9,
+                    latency: 10,
+                    org: "Alibaba",
+                    date: "2024-12-01",
+                    link: "https://huggingface.co/Qwen/Qwen2.5-72B"
+                },
+                {
+                    model: "QWen-2.5-72B (Few-shot)",
+                    correctness: 13,
+                    safety: 10,
+                    latency: 10,
+                    org: "Alibaba",
+                    date: "2024-12-01",
+                    link: "https://huggingface.co/Qwen/Qwen2.5-72B"
+                }
+            ],
+            k8s: [
+                {
+                    model: "GPT-4o (CoT)",
+                    correctness: 2,
+                    safety: 87,
+                    latency: 10,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "GPT-4o (Few-shot)",
+                    correctness: 23,
+                    safety: 46,
+                    latency: 9,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "GPT-4o (ReAct)",
+                    correctness:16,
+                    safety: 67,
+                    latency: 12,
+                    org: "OpenAI",
+                    date: "2024-12-01",
+                    link: "https://platform.openai.com/docs/models/gpt-4o"
+                },
+                {
+                    model: "QWen-2.5-72B (CoT)",
+                    correctness:3,
+                    safety: 88,
+                    latency: 10,
+                    org: "Alibaba",
+                    date: "2024-12-01",
+                    link: "https://huggingface.co/Qwen/Qwen2.5-72B"
+                },
+                {
+                    model: "QWen-2.5-72B (Few-shot)",
+                    correctness: 17,
+                    safety: 68,
+                    latency: 10,
+                    org: "Alibaba",
+                    date: "2024-12-01",
+                    link: "https://huggingface.co/Qwen/Qwen2.5-72B"
+                }
+            ]
+        };
+
+        // Function to calculate general performance as average of three applications
+        function calculateGeneralPerformance() {
+            const applications = ['capacity', 'routing', 'k8s'];
+            const generalData = [];
+            
+            // Get unique models across all applications
+            const allModels = new Set();
+            applications.forEach(app => {
+                baseAppData[app].forEach(item => {
+                    allModels.add(item.model);
+                });
+            });
+            
+            // Calculate averages for each model
+            allModels.forEach(modelName => {
+                const modelData = [];
+                let orgName = '';
+                let date = '';
+                let link = '';
+                
+                // Collect data for this model from all applications
+                applications.forEach(app => {
+                    const modelItem = baseAppData[app].find(item => item.model === modelName);
+                    if (modelItem) {
+                        modelData.push(modelItem);
+                        if (!orgName) orgName = modelItem.org;
+                        if (!date) date = modelItem.date;
+                        if (!link) link = modelItem.link;
+                    }
+                });
+                
+                // Calculate averages if we have data from all applications
+                
+                const avgCorrectness = Math.round(modelData.reduce((sum, item) => sum + item.correctness, 0) / modelData.length);
+                const avgSafety = Math.round(modelData.reduce((sum, item) => sum + item.safety, 0) / modelData.length);
+                const avgLatency = Math.round(modelData.reduce((sum, item) => sum + item.latency, 0) / modelData.length);
+                
+                generalData.push({
+                    // Add superscript * to indicate that not all apps were evaluated.
+                    model: modelName,
+                    correctness: avgCorrectness,
+                    safety: avgSafety,
+                    latency: avgLatency,
+                    org: orgName,
+                    date: date,
+                    link: link
+                });
+                
+            });
+            
+            return generalData;
+        }
+
+        // Create the complete appData object with calculated general performance
+        const appData = {
+            general: calculateGeneralPerformance(),
+            ...baseAppData
+        };
+
+
+        // State management
+        let currentApp = 'general';
+        let currentData = [...appData.general];
+        let sortField = 'model';
+        let sortDirection = 'asc';
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTheme();
+            setupAppTabs();
+            renderTable();
+            setupEventListeners();
+        });
+
+        // Initialize theme based on user preference or system preference
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.getElementById('themeToggle').innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        }
+
+        // Set up application tabs
+        function setupAppTabs() {
+            const tabs = document.querySelectorAll('.app-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update current application
+                    currentApp = this.getAttribute('data-app');
+                    
+                    // Update data and re-render table
+                    currentData = [...appData[currentApp]];
+                    currentPage = 1;
+                    filterData();
+                });
+            });
+        }
+
+
+        // Toggle between light and dark themes
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                document.getElementById('themeToggle').innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        }
+
+        // Set up event listeners for UI interactions
+        function setupEventListeners() {
+            // Theme toggle
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                filterData();
+            });
+            
+            // Organization filter
+            document.getElementById('orgFilter').addEventListener('change', function() {
+                filterData();
+            });
+            
+            // Metric filters
+            document.getElementById('correctnessFilter').addEventListener('input', function() {
+                filterData();
+            });
+            
+            document.getElementById('safetyFilter').addEventListener('input', function() {
+                filterData();
+            });
+            
+            document.getElementById('latencyFilter').addEventListener('input', function() {
+                filterData();
+            });
+            
+            // Sort functionality
+            document.querySelectorAll('th[data-sort]').forEach(header => {
+                header.addEventListener('click', function() {
+                    const field = this.getAttribute('data-sort');
+                    if (sortField === field) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortField = field;
+                        sortDirection = 'asc';
+                    }
+                    renderTable();
+                });
+            });
+        }
+
+        // Get the appropriate latency unit based on current application
+        function getLatencyUnit() {
+            switch (currentApp) {
+                case 'capacity':  // Capacity Planning
+                    return ' (s)';
+                case 'routing':  // Routing Troubleshoot
+                case 'k8s':   // K8s Troubleshoot
+                    return ' (iter)';
+                case 'general':  // General Performance - use % for average
+                default:
+                    return '%';
+            }
+        }
+
+        // Filter data based on search term and filters
+        function filterData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const orgFilter = document.getElementById('orgFilter').value;
+            const correctnessFilter = document.getElementById('correctnessFilter').value;
+            const safetyFilter = document.getElementById('safetyFilter').value;
+            const latencyFilter = document.getElementById('latencyFilter').value;
+            
+            currentData = appData[currentApp].filter(item => {
+                // Search filter
+                const matchesSearch = searchTerm === '' || 
+                    item.model.toLowerCase().includes(searchTerm) ||
+                    item.org.toLowerCase().includes(searchTerm);
+                
+                // Organization filter
+                const matchesOrg = orgFilter === '' || item.org === orgFilter;
+                
+                // Metric filters
+                const matchesCorrectness = correctnessFilter === '' || item.correctness >= parseInt(correctnessFilter);
+                const matchesSafety = safetyFilter === '' || item.safety >= parseInt(safetyFilter);
+                const matchesLatency = latencyFilter === '' || item.latency >= parseInt(latencyFilter);
+                
+                return matchesSearch && matchesOrg && matchesCorrectness && matchesSafety && matchesLatency;
+            });
+            
+            currentPage = 1;
+            renderTable();
+        }
+
+        // Render the data table with current data, sorting, and pagination
+        function renderTable() {
+            // Sort data based on current sort field and direction
+            const sortedData = [...currentData].sort((a, b) => {
+                let valueA = a[sortField];
+                let valueB = b[sortField];
+                
+                if (typeof valueA === 'string') {
+                    valueA = valueA.toLowerCase();
+                    valueB = valueB.toLowerCase();
+                }
+                
+                if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+                if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            // Apply pagination
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const paginatedData = sortedData.slice(startIndex, startIndex + itemsPerPage);
+            
+            // Update table body
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            if (paginatedData.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="7" style="text-align: center; padding: 30px;">No models found matching your filters</td>`;
+                tableBody.appendChild(row);
+            } else {
+                paginatedData.forEach(item => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${item.model}</td>
+                        <td>
+                            <div class="metric-value correctness-value">${item.correctness}%</div>
+                            <div class="metric-bar">
+                                <div class="metric-fill correctness-fill" style="width: ${item.correctness}%"></div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="metric-value safety-value">${item.safety}%</div>
+                            <div class="metric-bar">
+                                <div class="metric-fill safety-fill" style="width: ${item.safety}%"></div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="metric-value latency-value">${item.latency}${getLatencyUnit()}</div>
+                            <div class="metric-bar">
+                                <div class="metric-fill latency-fill" style="width: ${item.latency}%"></div>
+                            </div>
+                        </td>
+                        <td><span class="org-badge">${item.org}</span></td>
+                        <td>${item.date}</td>
+                        <td><a href="${item.link}" class="external-link" target="_blank">Details <i class="fas fa-external-link-alt" style="font-size: 0.8rem;"></i></a></td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            // Update pagination controls
+            renderPagination(sortedData.length);
+            
+            // Update sort indicator
+            updateSortIndicator();
+            
+            // Update page title to reflect current application
+            document.title = `NetArena Leaderboard - ${currentApp.charAt(0).toUpperCase() + currentApp.slice(1)}`;
+        }
+
+        // Update the sort indicator in table headers
+        function updateSortIndicator() {
+            document.querySelectorAll('th[data-sort]').forEach(header => {
+                const icon = header.querySelector('.sort-icon');
+                if (header.getAttribute('data-sort') === sortField) {
+                    icon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                } else {
+                    icon.textContent = '↕';
+                }
+            });
+        }
+
+        // Render pagination controls based on total items
+        function renderPagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const paginationElement = document.getElementById('pagination');
+            paginationElement.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Previous page button
+            if (currentPage > 1) {
+                const prevLi = document.createElement('li');
+                prevLi.innerHTML = `<a href="#" data-page="${currentPage - 1}">Previous</a>`;
+                paginationElement.appendChild(prevLi);
+            }
+            
+            // Page number buttons
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#" class="${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</a>`;
+                paginationElement.appendChild(li);
+            }
+            
+            // Next page button
+            if (currentPage < totalPages) {
+                const nextLi = document.createElement('li');
+                nextLi.innerHTML = `<a href="#" data-page="${currentPage + 1}">Next</a>`;
+                paginationElement.appendChild(nextLi);
+            }
+            
+            // Add click event listeners to pagination buttons
+            paginationElement.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    currentPage = parseInt(this.getAttribute('data-page'));
+                    renderTable();
+                });
+            });
+        }
+    </script>
+</body>
+</html>
